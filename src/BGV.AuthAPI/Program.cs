@@ -54,14 +54,45 @@ builder.Host.UseSerilog((context, config) =>
 });
 
 // OpenTelemetry
+//Traces
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracerProviderBuilder =>
     {
         tracerProviderBuilder
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("BGV.AuthAPI"))
             .AddAspNetCoreInstrumentation()
-            // .AddNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!)
-            .AddConsoleExporter();
+            //.AddNpgsqlInstrumentation()
+            //.AddNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+            .AddConsoleExporter()
+            .AddOtlpExporter(opt => 
+            {
+                opt.Endpoint = new Uri("http://seq:5341/ingest/otlp/v1/traces");
+                opt.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+            });
     });
+
+// Metrics
+// builder.Services.AddOpenTelemetry()
+//     .WithMetrics(metricProviderBuilder =>
+//     {
+//         metricProviderBuilder
+//             .AddAspNetCoreInstrumentation()
+//             .AddRuntimeInstrumentation()
+//             .AddOtlpExporter(options =>
+//             {
+//                 options.Endpoint = new Uri("http://localhost:5341");
+//             });
+//     });
+
+// Logs
+// builder.Logging.AddOpenTelemetry(logs =>
+// {
+//     logs.IncludeFormattedMessage = true;
+//     logs.AddOtlpExporter(options =>
+//     {
+//         options.Endpoint = new Uri("http://localhost:5341");
+//     });
+// });
 
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

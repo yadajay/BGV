@@ -8,7 +8,7 @@ namespace BGV.AuthAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/users")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class UserManagementController : ControllerBase
 {
     private readonly IUserService _userService;

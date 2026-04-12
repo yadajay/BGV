@@ -1,6 +1,7 @@
 using BGV.AuthAPI.Models.Requests;
 using BGV.AuthAPI.Models.Responses;
 using BGV.AuthAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BGV.AuthAPI.Controllers;
@@ -52,6 +53,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [Authorize]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
     {
         await _tokenService.RevokeTokenAsync(request.RefreshToken);
@@ -89,6 +91,7 @@ public class AuthController : ControllerBase
     }
 
     // [HttpPost("mfa/enable")]
+    // [Authorize]
     // public async Task<IActionResult> EnableMfa()
     // {
     //     var userId = User.FindFirst("sub")?.Value;
@@ -103,6 +106,7 @@ public class AuthController : ControllerBase
     // }
 
     // [HttpPost("mfa/verify")]
+    // [Authorize]
     // public async Task<IActionResult> VerifyMfa([FromBody] VerifyMfaRequest request)
     // {
     //     var userId = User.FindFirst("sub")?.Value;

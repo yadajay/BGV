@@ -14,5 +14,5 @@ public class Result<T> : Result
     public T? Data { get; set; }
 
     public static Result<T> Ok(T data) => new() { Success = true, Data = data };
-    public static Result<T> Fail(string error) => new() { Success = false, Error = error };
+    public static new Result<T> Fail(string error) => new() { Success = false, Error = error };
 }

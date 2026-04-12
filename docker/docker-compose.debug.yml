@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+  authapi:
+    container_name: bgv-authapi
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.AuthAPI
+      args:
+        BUILD_CONFIGURATION: Debug
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=BGV_db;Username=bgv_user;Password=bgv_password
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Secret=your-super-secret-jwt-key-here-at-least-32-chars
+      - Jwt__Issuer=BGV.AuthAPI
+      - Jwt__Audience=BGV.Apps
+    ports:
+      - "4020:4020"  # Debugger only in debug
+      - "5001:8080"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bgv-network
+
+  postgres:
+    container_name: bgv-postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: BGV_db
+      POSTGRES_USER: bgv_user
+      POSTGRES_PASSWORD: bgv_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bgv-network
+
+  redis:
+    container_name: bgv-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - bgv-network
+
+  seq:
+    container_name: bgv-seq
+    image: datalust/seq:latest
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_ADMINPASSWORD: "SeqAdmin123!"
+    ports:
+      - "5341:80"
+    networks:
+      - bgv-network
+
+volumes:
+  pgdata:
+
+networks:
+  bgv-network:
+    driver: bridge

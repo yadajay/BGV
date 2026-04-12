@@ -1,0 +1,34 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+ARG BUILD_CONFIGURATION=Debug  #debug or release passed from compose file
+WORKDIR /src
+
+# Copy csproj files and restore dependencies
+COPY ["src/BGV.AuthAPI/BGV.AuthAPI.csproj", "BGV.AuthAPI/"]
+COPY ["src/BGV.Core/BGV.Core.csproj", "BGV.Core/"]
+COPY ["src/BGV.Infrastructure/BGV.Infrastructure.csproj", "BGV.Infrastructure/"]
+RUN dotnet restore "BGV.AuthAPI/BGV.AuthAPI.csproj"
+
+# Copy everything else and build
+COPY src/ .
+RUN dotnet build "BGV.AuthAPI/BGV.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+
+# Publish
+FROM build AS publish
+ARG BUILD_CONFIGURATION
+RUN dotnet publish "BGV.AuthAPI/BGV.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+WORKDIR /app
+
+# Install vsdbg only for Debug builds
+ARG BUILD_CONFIGURATION
+RUN if [ "$BUILD_CONFIGURATION" = "Debug" ]; then \
+    apk add --no-cache curl bash && \
+    curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg; \
+    fi
+
+COPY --from=publish /app/publish .
+EXPOSE 8080
+CMD ["dotnet", "BGV.AuthAPI.dll"]

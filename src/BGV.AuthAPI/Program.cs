@@ -6,6 +6,7 @@ using BGV.Infrastructure.Db;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
 using Serilog;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
@@ -106,6 +107,14 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+// Ensure the API uses OpenIddict's JWT validation by default.
+// This prevents Identity from redirecting unauthorized API calls to a login page (302).
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+});
+
 // OpenIddict
 builder.Services.AddOpenIddict()
                 .AddCore(options =>
@@ -169,7 +178,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS in production to avoid 302 issues in local Docker/Dev environments
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

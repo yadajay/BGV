@@ -1,3 +1,4 @@
+name: bgv
 version: '3.9'
 
 services:
@@ -32,6 +33,11 @@ services:
       POSTGRES_DB: BGV_db
       POSTGRES_USER: bgv_user
       POSTGRES_PASSWORD: bgv_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bgv_user -d BGV_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:

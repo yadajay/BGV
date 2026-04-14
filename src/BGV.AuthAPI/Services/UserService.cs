@@ -3,6 +3,8 @@ using BGV.AuthAPI.Models.Responses;
 using BGV.AuthAPI.Repositories;
 using BGV.Core.Models;
 using BGV.Infrastructure.Db;
+using OpenIddict.Abstractions;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 
 namespace BGV.AuthAPI.Services;
@@ -147,5 +149,80 @@ public class UserService : IUserService
     public async Task<UserResponse?> GetUserByIdAsync(string userId)
     {
         return await _userRepository.GetUserByIdAsync(userId);
+    }
+
+    public async Task<Result<ClaimsPrincipal>> CreatePrincipalForPasswordGrantAsync(string username, string password, IEnumerable<string> scopes)
+    {
+        var user = await _userManager.FindByNameAsync(username);
+        if (user == null) return Result<ClaimsPrincipal>.Fail("Invalid credentials");
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        if (!result.Succeeded) return Result<ClaimsPrincipal>.Fail("Invalid credentials");
+
+        var principal = await _signInManager.CreateUserPrincipalAsync(user);
+
+        // Explicitly set the subject claim to the user's unique identifier.
+        principal.SetClaim(OpenIddictConstants.Claims.Subject, await _userManager.GetUserIdAsync(user));
+        principal.SetClaim(OpenIddictConstants.Claims.Email, await _userManager.GetEmailAsync(user));
+        principal.SetClaim(OpenIddictConstants.Claims.Name, user.UserName); // In the future, map this to a 'FullName' property
+
+        principal.SetScopes(scopes);
+
+        foreach (var claim in principal.Claims)
+        {
+            var destinations = new List<string> { OpenIddictConstants.Destinations.AccessToken };
+
+            // Decide if the claim should also go to the Identity Token (ID Token)
+            if (claim.Type == OpenIddictConstants.Claims.Subject ||
+               (claim.Type == OpenIddictConstants.Claims.Name && principal.HasScope(OpenIddictConstants.Scopes.Profile)) ||
+               (claim.Type == OpenIddictConstants.Claims.Email && principal.HasScope(OpenIddictConstants.Scopes.Email)) ||
+               (claim.Type == OpenIddictConstants.Claims.Role && principal.HasScope("roles")))
+            {
+                destinations.Add(OpenIddictConstants.Destinations.IdentityToken);
+            }
+
+            claim.SetDestinations(destinations);
+        }
+
+        return Result<ClaimsPrincipal>.Ok(principal);
+    }
+
+    public async Task<Result<ClaimsPrincipal>> CreatePrincipalForRefreshTokenGrantAsync(ClaimsPrincipal currentPrincipal, IEnumerable<string> scopes)
+    {
+        var user = await _userManager.GetUserAsync(currentPrincipal);
+        if (user == null) return Result<ClaimsPrincipal>.Fail("User no longer exists");
+
+        if (!await _signInManager.CanSignInAsync(user)) return Result<ClaimsPrincipal>.Fail("User cannot sign in");
+
+        var principal = await _signInManager.CreateUserPrincipalAsync(user);
+
+        // Explicitly set the subject claim.
+        principal.SetClaim(OpenIddictConstants.Claims.Subject, await _userManager.GetUserIdAsync(user));
+        principal.SetClaim(OpenIddictConstants.Claims.Email, await _userManager.GetEmailAsync(user));
+        principal.SetClaim(OpenIddictConstants.Claims.Name, user.UserName);
+
+        principal.SetScopes(scopes);
+
+        foreach (var claim in principal.Claims)
+        {
+            var destinations = new List<string> { OpenIddictConstants.Destinations.AccessToken };
+
+            if (claim.Type == OpenIddictConstants.Claims.Subject ||
+               (claim.Type == OpenIddictConstants.Claims.Name && principal.HasScope(OpenIddictConstants.Scopes.Profile)) ||
+               (claim.Type == OpenIddictConstants.Claims.Email && principal.HasScope(OpenIddictConstants.Scopes.Email)) ||
+               (claim.Type == OpenIddictConstants.Claims.Role && principal.HasScope("roles")))
+            {
+                destinations.Add(OpenIddictConstants.Destinations.IdentityToken);
+            }
+
+            claim.SetDestinations(destinations);
+        }
+
+        return Result<ClaimsPrincipal>.Ok(principal);
+    }
+
+    public async Task LogoutAsync()
+    {
+        await _signInManager.SignOutAsync();
     }
 }

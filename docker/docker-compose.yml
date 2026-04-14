@@ -1,3 +1,4 @@
+name: bgv
 version: '3.9'
 
 services:
@@ -9,7 +10,7 @@ services:
       args:
         BUILD_CONFIGURATION: Release
     environment:
-      - ASPNETCORE_ENVIRONMENT=Productionn
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=BGV_db;Username=bgv_user;Password=bgv_password
       - ConnectionStrings__Redis=redis:6379

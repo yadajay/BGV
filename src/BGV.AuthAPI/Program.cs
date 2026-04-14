@@ -6,11 +6,14 @@ using BGV.Infrastructure.Db;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using Serilog;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using Microsoft.OpenApi.Models;
+using OpenIddict.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,15 +23,26 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "BGV Auth API", Version = "v1" });
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+
+    // Define the OAuth2 Password Flow for Swagger
+    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
     {
-        In = ParameterLocation.Header,
-        Description = "Please enter a valid token",
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        BearerFormat = "JWT",
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new OpenApiOAuthFlows
+        {
+            Password = new OpenApiOAuthFlow
+            {
+                TokenUrl = new Uri("/connect/token", UriKind.Relative),
+                Scopes = new Dictionary<string, string>
+                {
+                    { "openid", "OpenID Connect" },
+                    { "profile", "User profile" },
+                    { "offline_access", "Refresh tokens" }
+                }
+            }
+        }
     });
+
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -37,7 +51,7 @@ builder.Services.AddSwaggerGen(options =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+                    Id = "oauth2"
                 }
             },
             Array.Empty<string>()
@@ -72,6 +86,7 @@ builder.Services.AddOpenTelemetry()
             });
     });
 
+#region OpenTelemetry Metrics and Logs (commented out for now)
 // Metrics
 // builder.Services.AddOpenTelemetry()
 //     .WithMetrics(metricProviderBuilder =>
@@ -94,6 +109,7 @@ builder.Services.AddOpenTelemetry()
 //         options.Endpoint = new Uri("http://localhost:5341");
 //     });
 // });
+#endregion
 
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -129,14 +145,27 @@ builder.Services.AddOpenIddict()
                            .SetUserinfoEndpointUris("/connect/userinfo");
 
                     options.AllowAuthorizationCodeFlow()
+                           .AllowPasswordFlow()
                            .AllowRefreshTokenFlow();
 
-                    options.AddDevelopmentEncryptionCertificate()
-                           .AddDevelopmentSigningCertificate();
+                    // Disabling encryption allows the access token to be emitted as a standard 
+                    // signed JWT, making it readable by tools like jwt.io and other APIs.
+                    options.DisableAccessTokenEncryption();
 
-                    options.UseAspNetCore()
+                    if (builder.Environment.IsDevelopment())
+                    {
+                        options.AddDevelopmentEncryptionCertificate()
+                               .AddDevelopmentSigningCertificate();
+                    }
+
+                    var aspNetCoreBuilder = options.UseAspNetCore()
                            .EnableAuthorizationEndpointPassthrough()
                            .EnableTokenEndpointPassthrough();
+
+                    if (builder.Environment.IsDevelopment())
+                    {
+                        aspNetCoreBuilder.DisableTransportSecurityRequirement();
+                    }
                 })
                 .AddValidation(options =>
                 {
@@ -151,7 +180,6 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 // Services
-builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 // builder.Services.AddScoped<IMfaService, MfaService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -166,9 +194,26 @@ var app = builder.Build();
 // Initialize database and OpenIddict
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
-    await OpenIddictConfig.InitializeAsync(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+
+    // Retry logic: Attempt to connect to the DB up to 10 times with a 3-second delay
+    for (int i = 1; i <= 10; i++)
+    {
+        try
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+            await OpenIddictConfig.InitializeAsync(services);
+            logger.LogInformation("Database and OpenIddict initialized successfully.");
+            break;
+        }
+        catch (Exception ex) when (i < 10)
+        {
+            logger.LogWarning("Database connection failed. Postgres might still be starting. Retrying in 3s... (Attempt {Attempt}/10)", i);
+            await Task.Delay(3000);
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -187,6 +232,7 @@ if (!app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();

@@ -142,6 +142,7 @@ builder.Services.AddOpenIddict()
                 {
                     options.SetAuthorizationEndpointUris("/connect/authorize")
                            .SetTokenEndpointUris("/connect/token")
+                           .SetLogoutEndpointUris("/connect/logout")
                            .SetUserinfoEndpointUris("/connect/userinfo");
 
                     options.AllowAuthorizationCodeFlow()
@@ -160,7 +161,9 @@ builder.Services.AddOpenIddict()
 
                     var aspNetCoreBuilder = options.UseAspNetCore()
                            .EnableAuthorizationEndpointPassthrough()
-                           .EnableTokenEndpointPassthrough();
+                           .EnableTokenEndpointPassthrough()
+                           .EnableLogoutEndpointPassthrough()
+                           .EnableUserinfoEndpointPassthrough();
 
                     if (builder.Environment.IsDevelopment())
                     {

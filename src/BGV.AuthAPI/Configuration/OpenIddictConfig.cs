@@ -21,9 +21,11 @@ public static class OpenIddictConfig
                 ClientSecret = "bgv-secret", // In production, use proper secret
                 DisplayName = "BGV Web Application",
                 RedirectUris = { new Uri("https://localhost:5000/callback") },
+                PostLogoutRedirectUris = { new Uri("https://localhost:5000/") },
                 Permissions =
                 {
                     OpenIddictConstants.Permissions.Endpoints.Authorization,
+                    OpenIddictConstants.Permissions.Endpoints.Logout,
                     OpenIddictConstants.Permissions.Endpoints.Token,
                     OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                     OpenIddictConstants.Permissions.GrantTypes.Password,

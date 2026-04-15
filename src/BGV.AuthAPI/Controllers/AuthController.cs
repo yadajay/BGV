@@ -20,11 +20,19 @@ public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// </summary>
+    /// <param name="userService">The user service.</param>
     public AuthController(IUserService userService)
     {
         _userService = userService;
     }
 
+    /// <summary>
+    /// Returns claims about the authenticated user (OIDC UserInfo endpoint).
+    /// </summary>
+    /// <returns>A JSON object containing user claims.</returns>
     [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
     [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), IgnoreAntiforgeryToken]
     [Produces("application/json")]
@@ -36,15 +44,21 @@ public class AuthController : ControllerBase
         
         if (user == null) return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
+        // The OpenIddict validation middleware has already validated the token.
+        // We can return the claims directly from the User object or re-fetch for fresh data.
+        return Ok(new Dictionary<string, object>(StringComparer.Ordinal)
         {
-            [OpenIddictConstants.Claims.Subject] = user.Id,
-            [OpenIddictConstants.Claims.Email] = user.Email!
-        };
-
-        return Ok(claims);
+            [Claims.Subject] = user.Id,
+            [Claims.Email] = user.Email ?? string.Empty,
+            [Claims.Name] = user.Email ?? string.Empty
+        });
     }
 
+    /// <summary>
+    /// Registers a new user in the system.
+    /// </summary>
+    /// <param name="request">The registration details.</param>
+    /// <returns>An OK result if successful; otherwise, a BadRequest.</returns>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
@@ -54,20 +68,18 @@ public class AuthController : ControllerBase
         return Ok(new { message = "User registered successfully" });
     }
 
+    /// <summary>
+    /// Handles OIDC token exchange requests (Password and Refresh Token grants).
+    /// This is the standard OIDC token endpoint.
+    /// </summary>
+    /// <returns>A sign-in result with tokens if successful; otherwise, an error response.</returns>
     // Use the '~' to bypass the [Route("api/v1/auth")] for standard OIDC endpoints
     [HttpPost("~/connect/token")]
     [IgnoreAntiforgeryToken]
     [AllowAnonymous]
     [Produces("application/json")]
     [Consumes("application/x-www-form-urlencoded")]
-    public async Task<IActionResult> Exchange(
-        [FromForm] string grant_type,
-        [FromForm] string? username,
-        [FromForm] string? password,
-        [FromForm] string? refresh_token,
-        [FromForm] string? scope,
-        [FromForm] string? client_id,
-        [FromForm] string? client_secret)
+    public async Task<IActionResult> Exchange()
     {
         var request = HttpContext.GetOpenIddictServerRequest() ?? 
             throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
@@ -105,14 +117,44 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Handles OIDC end-session/logout requests.
+    /// </summary>
+    /// <returns>A sign-out result triggering redirection to the post-logout URI.</returns>
+    [HttpGet("~/connect/logout")]
+    [HttpPost("~/connect/logout")]
+    [IgnoreAntiforgeryToken]
+    [AllowAnonymous] // Logout usually needs to be accessible even if the local cookie expired
+    public async Task<IActionResult> Logout()
+    {
+        await _userService.LogoutAsync();
+        // Ask OpenIddict to clear the user's tokens and redirect to the post_logout_redirect_uri.
+        // OpenIddict validates the redirect URI against the client's registered URIs.
+        return SignOut(
+            authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            properties: new AuthenticationProperties
+            {
+                RedirectUri = "/"
+            });
+    }
+
+    /// <summary>
+    /// Performs a programmatic API logout by revoking the current session.
+    /// </summary>
+    /// <returns>An OK result confirming logout.</returns>
     [HttpPost("logout")]
     [Authorize]
-    public async Task<IActionResult> Logout()
+    public async Task<IActionResult> ApiLogout()
     {
         await _userService.LogoutAsync();
         return Ok(new { message = "Logged out successfully" });
     }
 
+    /// <summary>
+    /// Initiates the password reset process by generating a token.
+    /// </summary>
+    /// <param name="request">The request containing the user's email.</param>
+    /// <returns>An OK result confirming the email was sent.</returns>
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
@@ -123,6 +165,11 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password reset email sent" });
     }
 
+    /// <summary>
+    /// Resets a user's password using a valid reset token.
+    /// </summary>
+    /// <param name="request">The reset details including the token and new password.</param>
+    /// <returns>An OK result if the password was reset.</returns>
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
     {
@@ -133,6 +180,11 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password reset successfully" });
     }
 
+    /// <summary>
+    /// Verifies a user's email address using a verification token.
+    /// </summary>
+    /// <param name="request">The request containing the verification token.</param>
+    /// <returns>An OK result if the email was verified.</returns>
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
     {

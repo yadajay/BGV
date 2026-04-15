@@ -25,6 +25,26 @@ public class AuthController : ControllerBase
         _userService = userService;
     }
 
+    [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
+    [HttpGet("~/connect/userinfo"), HttpPost("~/connect/userinfo"), IgnoreAntiforgeryToken]
+    [Produces("application/json")]
+    public async Task<IActionResult> Userinfo()
+    {
+        // The 'sub' claim is used to identify the user.
+        var userId = User.GetClaim(OpenIddictConstants.Claims.Subject);
+        var user = await _userService.GetUserByIdAsync(userId!);
+        
+        if (user == null) return Challenge(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            [OpenIddictConstants.Claims.Subject] = user.Id,
+            [OpenIddictConstants.Claims.Email] = user.Email!
+        };
+
+        return Ok(claims);
+    }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {

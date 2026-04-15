@@ -72,8 +72,7 @@ Centralized identity service for all apps and APIs. Extensible for SSO and MFA.
 
 ```
 POST   /api/v1/auth/register
-POST   /api/v1/auth/login
-POST   /api/v1/auth/refresh-token
+POST   /connect/token (OIDC Exchange)
 POST   /api/v1/auth/logout
 POST   /api/v1/auth/forgot-password
 POST   /api/v1/auth/reset-password
@@ -92,6 +91,7 @@ DELETE /api/v1/users/{id}/roles/{role}
 GET/POST  /connect/authorize
 POST      /connect/token
 POST      /connect/logout
+GET       /connect/userinfo
 GET       /.well-known/openid-configuration
 ```
 

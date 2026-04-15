@@ -22,6 +22,7 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
+    /// <inheritdoc />
     public async Task<Result<string>> RegisterAsync(RegisterRequest request)
     {
         if (request.Password != request.ConfirmPassword)
@@ -36,21 +37,7 @@ public class UserService : IUserService
         return Result<string>.Ok(user.Id);
     }
 
-    public async Task<Result<string>> LoginAsync(LoginRequest request)
-    {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null)
-            return Result<string>.Fail("Invalid credentials");
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!result.Succeeded)
-            return Result<string>.Fail("Invalid credentials");
-
-        // TODO: Check MFA if enabled
-
-        return Result<string>.Ok(user.Id);
-    }
-
+    /// <inheritdoc />
     public async Task<Result> ForgotPasswordAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -63,6 +50,7 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> ResetPasswordAsync(ResetPasswordRequest request)
     {
         if (request.NewPassword != request.ConfirmPassword)
@@ -79,12 +67,14 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> VerifyEmailAsync(string token)
     {
         // TODO: Implement email verification
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> UpdateUserAsync(string userId, UpdateUserRequest request)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -102,6 +92,7 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> DeleteUserAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -115,6 +106,7 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> AddRoleToUserAsync(string userId, string role)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -128,6 +120,7 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<Result> RemoveRoleFromUserAsync(string userId, string role)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -141,16 +134,19 @@ public class UserService : IUserService
         return Result.Ok();
     }
 
+    /// <inheritdoc />
     public async Task<List<UserResponse>> GetAllUsersAsync()
     {
         return await _userRepository.GetAllUsersAsync();
     }
 
+    /// <inheritdoc />
     public async Task<UserResponse?> GetUserByIdAsync(string userId)
     {
         return await _userRepository.GetUserByIdAsync(userId);
     }
 
+    /// <inheritdoc />
     public async Task<Result<ClaimsPrincipal>> CreatePrincipalForPasswordGrantAsync(string username, string password, IEnumerable<string> scopes)
     {
         var user = await _userManager.FindByNameAsync(username);
@@ -187,6 +183,7 @@ public class UserService : IUserService
         return Result<ClaimsPrincipal>.Ok(principal);
     }
 
+    /// <inheritdoc />
     public async Task<Result<ClaimsPrincipal>> CreatePrincipalForRefreshTokenGrantAsync(ClaimsPrincipal currentPrincipal, IEnumerable<string> scopes)
     {
         var user = await _userManager.GetUserAsync(currentPrincipal);
@@ -221,6 +218,7 @@ public class UserService : IUserService
         return Result<ClaimsPrincipal>.Ok(principal);
     }
 
+    /// <inheritdoc />
     public async Task LogoutAsync()
     {
         await _signInManager.SignOutAsync();

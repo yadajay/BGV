@@ -1,0 +1,22 @@
+@page
+@model RCD.AuthAPI.Pages.Account.LogoutModel
+@{
+    ViewData["Title"] = "Sign out";
+    Layout = "/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col auth-card">
+        <div class="card shadow-sm border-0 text-center">
+            <div class="card-body p-4 p-md-5">
+                <h4 class="card-title mb-3">Sign out</h4>
+                <p class="text-muted mb-4">Are you sure you want to sign out?</p>
+
+                <form method="post">
+                    <button type="submit" class="btn btn-danger px-4">Yes, sign me out</button>
+                    <a asp-page="/Manage/Index" class="btn btn-outline-secondary px-4 ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

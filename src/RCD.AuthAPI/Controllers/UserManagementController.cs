@@ -3,12 +3,13 @@ using RCD.AuthAPI.Models.Responses;
 using RCD.AuthAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 
 namespace RCD.AuthAPI.Controllers;
 
 [ApiController]
 [Route("api/v1/users")]
-[Authorize]
+[Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
 public class UserManagementController : ControllerBase
 {
     private readonly IUserService _userService;

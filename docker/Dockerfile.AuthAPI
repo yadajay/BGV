@@ -4,19 +4,19 @@ ARG BUILD_CONFIGURATION=Debug  #debug or release passed from compose file
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
-COPY ["src/BGV.AuthAPI/BGV.AuthAPI.csproj", "BGV.AuthAPI/"]
-COPY ["src/BGV.Core/BGV.Core.csproj", "BGV.Core/"]
-COPY ["src/BGV.Infrastructure/BGV.Infrastructure.csproj", "BGV.Infrastructure/"]
-RUN dotnet restore "BGV.AuthAPI/BGV.AuthAPI.csproj"
+COPY ["src/RCD.AuthAPI/RCD.AuthAPI.csproj", "RCD.AuthAPI/"]
+COPY ["src/RCD.Core/RCD.Core.csproj", "RCD.Core/"]
+COPY ["src/RCD.Infrastructure/RCD.Infrastructure.csproj", "RCD.Infrastructure/"]
+RUN dotnet restore "RCD.AuthAPI/RCD.AuthAPI.csproj"
 
 # Copy everything else and build
 COPY src/ .
-RUN dotnet build "BGV.AuthAPI/BGV.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+RUN dotnet build "RCD.AuthAPI/RCD.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
 
 # Publish
 FROM build AS publish
 ARG BUILD_CONFIGURATION
-RUN dotnet publish "BGV.AuthAPI/BGV.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish
+RUN dotnet publish "RCD.AuthAPI/RCD.AuthAPI.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
@@ -31,4 +31,4 @@ RUN if [ "$BUILD_CONFIGURATION" = "Debug" ]; then \
 
 COPY --from=publish /app/publish .
 EXPOSE 8080
-CMD ["dotnet", "BGV.AuthAPI.dll"]
+CMD ["dotnet", "RCD.AuthAPI.dll"]

@@ -12,7 +12,7 @@
             },
             "pipeTransport": {
                 "pipeProgram": "docker",
-                "pipeArgs": ["exec", "-i", "bgv-authapi", "bash", "-lc"],
+                "pipeArgs": ["exec", "-i", "rcd-authapi", "bash", "-lc"],
                 "debuggerPath": "/vsdbg/vsdbg",
                 "pipeCwd": "${workspaceFolder}"
             }

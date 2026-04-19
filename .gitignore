@@ -55,7 +55,7 @@ Icon
 # Docker
 .dockerignore
 
-# Node/NPM (for BGV.Web scripts/libman)
+# Node/NPM (for RCD.Web scripts/libman)
 node_modules/
 npm-debug.log*
 yarn-debug.log*

@@ -8,13 +8,13 @@
 ## 1. Solution Overview
 
 ```
-BGV.sln
+RCD.sln
 ├── src/
-│   ├── BGV.AuthAPI          # Authentication & Authorization service
-│   ├── BGV.BackendAPI       # Core business API
-│   ├── BGV.Web              # ASP.NET Core MVC Frontend
-│   ├── BGV.Core             # Shared models, interfaces, constants
-│   └── BGV.Infrastructure   # Shared DB helpers, utilities
+│   ├── RCD.AuthAPI          # Authentication & Authorization service
+│   ├── RCD.BackendAPI       # Core business API
+│   ├── RCD.Web              # ASP.NET Core MVC Frontend
+│   ├── RCD.Core             # Shared models, interfaces, constants
+│   └── RCD.Infrastructure   # Shared DB helpers, utilities
 ├── docker/
 │   ├── docker-compose.yml
 │   ├── docker-compose.override.yml (dev)
@@ -35,7 +35,7 @@ BGV.sln
 │                        Docker Network                           │
 │                                                                 │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐  │
-│  │  BGV   │───▶│  AuthAPI     │    │   BackendAPI     │  │
+│  │  RCD   │───▶│  AuthAPI     │    │   BackendAPI     │  │
 │  │  Web (MVC)   │───▶│  :5001       │    │   :5002          │  │
 │  │  :8080       │───▶│              │    │                  │  │
 │  └──────────────┘    └──────┬───────┘    └──────┬───────────┘  │
@@ -54,7 +54,7 @@ BGV.sln
 
 ---
 
-## 3. Component 1 — Auth API (`BGV.AuthAPI`)
+## 3. Component 1 — Auth API (`RCD.AuthAPI`)
 
 ### Purpose
 Centralized identity service for all apps and APIs. Extensible for SSO and MFA.
@@ -98,7 +98,7 @@ GET       /.well-known/openid-configuration
 ### Project Structure
 
 ```
-BGV.AuthAPI/
+RCD.AuthAPI/
 ├── Controllers/
 │   ├── AuthController.cs
 │   └── UserManagementController.cs
@@ -130,7 +130,7 @@ BGV.AuthAPI/
 
 ---
 
-## 4. Component 2 — Backend API (`BGV.BackendAPI`)
+## 4. Component 2 — Backend API (`RCD.BackendAPI`)
 
 ### Purpose
 Core business logic API. Starts as a single project with logical separation by domain (Client, Vendor, BackOffice). Can be split later.
@@ -151,7 +151,7 @@ Core business logic API. Starts as a single project with logical separation by d
 ### Project Structure
 
 ```
-BGV.BackendAPI/
+RCD.BackendAPI/
 ├── Controllers/
 │   ├── V1/
 │   │   ├── Client/
@@ -230,7 +230,7 @@ builder.Services.AddAuthorization(options => {
 
 ---
 
-## 5. Component 3 — Web Frontend (`BGV.Web`)
+## 5. Component 3 — Web Frontend (`RCD.Web`)
 
 ### Purpose
 ASP.NET Core MVC application. Mobile-first, AJAX-driven, component architecture.
@@ -252,7 +252,7 @@ ASP.NET Core MVC application. Mobile-first, AJAX-driven, component architecture.
 ### Project Structure
 
 ```
-BGV.Web/
+RCD.Web/
 ├── Controllers/
 │   ├── AccountController.cs
 │   ├── DashboardController.cs
@@ -344,10 +344,10 @@ public class ClientRepository : IClientRepository
 }
 ```
 
-### Shared Infrastructure (`BGV.Infrastructure`)
+### Shared Infrastructure (`RCD.Infrastructure`)
 
 ```
-BGV.Infrastructure/
+RCD.Infrastructure/
 ├── Data/
 │   ├── IDbConnectionFactory.cs
 │   └── NpgsqlConnectionFactory.cs
@@ -383,8 +383,8 @@ version: '3.9'
 
 services:
   authapi:
-    image: BGV-authapi
-    build: ./src/BGV.AuthAPI
+    image: RCD-authapi
+    build: ./src/RCD.AuthAPI
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Default=${DB_CONNECTION}
@@ -396,8 +396,8 @@ services:
       - redis
 
   backendapi:
-    image: BGV-backendapi
-    build: ./src/BGV.BackendAPI
+    image: RCD-backendapi
+    build: ./src/RCD.BackendAPI
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Default=${DB_CONNECTION}
@@ -409,8 +409,8 @@ services:
       - authapi
 
   web:
-    image: BGV-web
-    build: ./src/BGV.Web
+    image: RCD-web
+    build: ./src/RCD.Web
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - AuthAPI__BaseUrl=http://authapi:8080
@@ -424,7 +424,7 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: BGV_db
+      POSTGRES_DB: RCD_db
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
@@ -457,33 +457,33 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
-COPY ["BGV.AuthAPI/BGV.AuthAPI.csproj", "BGV.AuthAPI/"]
-COPY ["BGV.Core/BGV.Core.csproj", "BGV.Core/"]
-COPY ["BGV.Infrastructure/BGV.Infrastructure.csproj", "BGV.Infrastructure/"]
-RUN dotnet restore "BGV.AuthAPI/BGV.AuthAPI.csproj"
+COPY ["RCD.AuthAPI/RCD.AuthAPI.csproj", "RCD.AuthAPI/"]
+COPY ["RCD.Core/RCD.Core.csproj", "RCD.Core/"]
+COPY ["RCD.Infrastructure/RCD.Infrastructure.csproj", "RCD.Infrastructure/"]
+RUN dotnet restore "RCD.AuthAPI/RCD.AuthAPI.csproj"
 COPY . .
-RUN dotnet build "BGV.AuthAPI/BGV.AuthAPI.csproj" -c Release -o /app/build
+RUN dotnet build "RCD.AuthAPI/RCD.AuthAPI.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "BGV.AuthAPI/BGV.AuthAPI.csproj" -c Release -o /app/publish
+RUN dotnet publish "RCD.AuthAPI/RCD.AuthAPI.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "BGV.AuthAPI.dll"]
+ENTRYPOINT ["dotnet", "RCD.AuthAPI.dll"]
 ```
 
 ---
 
 ## 8. Cross-Cutting Shared Projects
 
-### `BGV.Core` (no dependencies)
+### `RCD.Core` (no dependencies)
 - DTOs / ViewModels shared between projects
 - Common interfaces (`ICurrentUser`, `IAuditableEntity`)
 - Enums, constants
 - Result/Error pattern: `Result<T>` wrapper
 
-### `BGV.Infrastructure` (depends on Core)
+### `RCD.Infrastructure` (depends on Core)
 - `NpgsqlConnectionFactory`
 - Redis cache helper
 - `HttpClientFactory` wrappers
@@ -568,7 +568,7 @@ ENTRYPOINT ["dotnet", "BGV.AuthAPI.dll"]
 
 | Item | Convention | Example |
 |---|---|---|
-| Projects | PascalCase | `BGV.AuthAPI` |
+| Projects | PascalCase | `RCD.AuthAPI` |
 | Controllers | PascalCase + suffix | `ClientController.cs` |
 | Services | Interface + Impl | `IClientService` / `ClientService` |
 | Repositories | Interface + Impl | `IClientRepository` / `ClientRepository` |

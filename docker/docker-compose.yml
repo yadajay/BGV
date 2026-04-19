@@ -1,9 +1,9 @@
-name: bgv
+name: rcd
 version: '3.9'
 
 services:
   authapi:
-    container_name: bgv-authapi
+    container_name: rcd-authapi
     build:
       context: ..
       dockerfile: docker/Dockerfile.AuthAPI
@@ -12,43 +12,43 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=BGV_db;Username=bgv_user;Password=bgv_password
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=rcd_db;Username=rcd_user;Password=rcd_password
       - ConnectionStrings__Redis=redis:6379
       - Jwt__Secret=your-super-secret-jwt-key-here-at-least-32-chars
-      - Jwt__Issuer=BGV.AuthAPI
-      - Jwt__Audience=BGV.Apps
+      - Jwt__Issuer=rcd.AuthAPI
+      - Jwt__Audience=rcd.Apps
     ports:
       - "5001:8080"
     depends_on:
       - postgres
       - redis
     networks:
-      - bgv-network
+      - rcd-network
 
   postgres:
-    container_name: bgv-postgres
+    container_name: rcd-postgres
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: BGV_db
-      POSTGRES_USER: bgv_user
-      POSTGRES_PASSWORD: bgv_password
+      POSTGRES_DB: rcd_db
+      POSTGRES_USER: rcd_user
+      POSTGRES_PASSWORD: rcd_password
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
-      - bgv-network
+      - rcd-network
 
   redis:
-    container_name: bgv-redis
+    container_name: rcd-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
     networks:
-      - bgv-network
+      - rcd-network
 
   seq:
-    container_name: bgv-seq
+    container_name: rcd-seq
     image: datalust/seq:latest
     environment:
       ACCEPT_EULA: Y
@@ -56,11 +56,11 @@ services:
     ports:
       - "5341:80"
     networks:
-      - bgv-network
+      - rcd-network
 
 volumes:
   pgdata:
 
 networks:
-  bgv-network:
+  rcd-network:
     driver: bridge

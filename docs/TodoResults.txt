@@ -1,8 +1,8 @@
-Perfect! I have successfully created the BGV.AuthAPI project with all necessary files and Docker support. Here's a summary of what was implemented:
+Perfect! I have successfully created the RCD.AuthAPI project with all necessary files and Docker support. Here's a summary of what was implemented:
 
 ## ✅ Project Structure Created
 
-**BGV.AuthAPI** - Complete authentication service with:
+**RCD.AuthAPI** - Complete authentication service with:
 - **Controllers**: AuthController (register/login/refresh/logout/forgot-password/reset-password/verify-email) and UserManagementController (admin CRUD for users)
 - **Services**: TokenService (JWT + refresh tokens with Redis), UserService (Identity management), MfaService (commented out for Phase 2)
 - **Repositories**: UserRepository, RoleRepository
@@ -12,8 +12,8 @@ Perfect! I have successfully created the BGV.AuthAPI project with all necessary 
 - **Program.cs**: Full ASP.NET Core 8 setup with OpenIddict, Identity, Redis, Serilog, OpenTelemetry
 
 **Shared Projects**:
-- **BGV.Core**: Result<T> pattern, TokenPair model
-- **BGV.Infrastructure**: ApplicationUser, ApplicationDbContext
+- **RCD.Core**: Result<T> pattern, TokenPair model
+- **RCD.Infrastructure**: ApplicationUser, ApplicationDbContext
 
 ## ✅ Docker Support Added
 

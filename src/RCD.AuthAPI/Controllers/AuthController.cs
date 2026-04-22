@@ -18,10 +18,17 @@ namespace RCD.AuthAPI.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IOpenIddictTokenManager _tokenManager;
+    private readonly IOpenIddictAuthorizationManager _authorizationManager;
 
-    public AuthController(IUserService userService)
+    public AuthController(
+        IUserService userService,
+        IOpenIddictTokenManager tokenManager,
+        IOpenIddictAuthorizationManager authorizationManager)
     {
         _userService = userService;
+        _tokenManager = tokenManager;
+        _authorizationManager = authorizationManager;
     }
 
     // ── OIDC Standard Endpoints ───────────────────────────────────────────────
@@ -246,6 +253,18 @@ public class AuthController : ControllerBase
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     public async Task<IActionResult> ApiLogout()
     {
+        // Revoke all tokens belonging to this authorization session (access + refresh tokens).
+        var authorizationId = User.GetAuthorizationId();
+        if (authorizationId != null)
+        {
+            await foreach (var token in _tokenManager.FindByAuthorizationIdAsync(authorizationId))
+                await _tokenManager.TryRevokeAsync(token);
+
+            var authorization = await _authorizationManager.FindByIdAsync(authorizationId);
+            if (authorization != null)
+                await _authorizationManager.TryRevokeAsync(authorization);
+        }
+
         await _userService.LogoutAsync();
         return Ok(new { message = "Logged out successfully" });
     }

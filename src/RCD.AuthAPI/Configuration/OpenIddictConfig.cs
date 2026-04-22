@@ -97,6 +97,7 @@ public static class OpenIddictConfig
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
                 OpenIddictConstants.Permissions.Scopes.Email,
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "roles",
@@ -133,6 +134,7 @@ public static class OpenIddictConfig
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
                 OpenIddictConstants.Permissions.Scopes.Email,
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "roles",
@@ -168,6 +170,7 @@ public static class OpenIddictConfig
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
                 OpenIddictConstants.Permissions.Scopes.Email,
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "roles",
@@ -212,9 +215,7 @@ public static class OpenIddictConfig
     /// </summary>
     private static async Task RegisterSwaggerClientAsync(IOpenIddictApplicationManager manager, IConfiguration config)
     {
-        if (await manager.FindByClientIdAsync("rcd-swagger") != null) return;
-
-        await manager.CreateAsync(new OpenIddictApplicationDescriptor
+        var descriptor = new OpenIddictApplicationDescriptor
         {
             ClientId    = "rcd-swagger",
             ClientType  = OpenIddictConstants.ClientTypes.Public,
@@ -225,12 +226,19 @@ public static class OpenIddictConfig
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
                 OpenIddictConstants.Permissions.Scopes.Email,
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Prefixes.Scope + "roles",
                 OpenIddictConstants.Permissions.Prefixes.Scope + "api",
             },
             Requirements = { OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange }
-        });
+        };
+
+        var existing = await manager.FindByClientIdAsync("rcd-swagger");
+        if (existing == null)
+            await manager.CreateAsync(descriptor);
+        else
+            await manager.UpdateAsync(existing, descriptor);
     }
 }

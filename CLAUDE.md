@@ -12,6 +12,15 @@ OIDC-based platform with a central auth server and multiple client applications.
 | `RCD.BackendAPI` | Protected resource API. Dapper + stored procedures. Validates tokens issued by RCD.AuthAPI. |
 | `RCD.Web` | ASP.NET Core MVC client. Authenticates via Authorization Code flow. HTMX for partial-page updates. |
 
+## Test Projects
+
+| Project | Covers |
+|---|---|
+| `tests/RCD.Core.Tests` | `Result`, `Result<T>`, `TokenPair` |
+| `tests/RCD.AuthAPI.Tests` | `UserService`, `EmailService`, `UserRepository`, `ExceptionHandlingMiddleware`, `AuthController`, `UserManagementController`, all Razor Page models |
+
+Run: `dotnet test RCD.sln`. 100% line coverage on all authored classes. Excluded from coverage: `Program.cs`, `OpenIddictConfig` (need DB integration tests), `ApplicationDbContext`, Razor-compiler-generated `Pages_*` view classes.
+
 ## Tech Stack
 
 | Concern | Choice | Where |
